@@ -70,7 +70,7 @@ Cédula de Identidad (CI): ${socio.CI}
 Estado: ${socio.Estado}
 Profesión: ${socio.Profesion}
 Correo: ${socio.Correo}
-Teléfono: ${socio.Telefono}
+Teléfono: ${socio.telefono}
 Fecha de Registro: ${socio.Fecha_registro}
 Fecha de Vencimiento: ${socio.Fecha_vencimiento}
         `.trim();
@@ -225,7 +225,7 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
           <input
             type='text'
             name='Profesion'
-            value={formData.Profesion}
+            value={formData.profesion}
             onChange={handleChange}
             className={inputClass}
             required
@@ -253,7 +253,7 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
           <input
             type='text'
             name='Telefono'
-            value={formData.Telefono}
+            value={formData.telefono}
             onChange={handleChange}
             className={inputClass}
             required
@@ -301,6 +301,7 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
   }; // **COMPONENTE DE VISUALIZACIÓN DE DETALLES**
 
   const SocioDetailsView = ({ socio, onClose }) => {
+    console.log('🚀 ~ SocioDetailsView ~ socio:', socio);
     const detailItemClass =
       'flex justify-between items-center py-2 border-b border-gray-100';
     const detailLabelClass = 'text-sm text-gray-500 font-medium';
@@ -347,7 +348,7 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
                    {' '}
           <div className={detailItemClass}>
                         <span className={detailLabelClass}>Teléfono:</span>     
-                  <span className={detailValueClass}>{socio.Telefono}</span>   
+                  <span className={detailValueClass}>{socio.telefono}</span>   
                  {' '}
           </div>
                  {' '}
@@ -370,8 +371,10 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
                        {' '}
             <span className={detailLabelClass}>Fecha de Vencimiento:</span>     
                  {' '}
-            <span className={detailValueClass}>{socio.Fecha_vencimiento}</span> 
-                   {' '}
+            <span className={detailValueClass}>
+              {new Date(socio.fechaVencimiento).toLocaleDateString()}
+            </span>
+                     {' '}
           </div>
                    {' '}
           <div className={detailItemClass}>
@@ -861,7 +864,7 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
                       </div>
                                            {' '}
                       <div className='text-xs text-gray-500'>
-                        {socio.Telefono}
+                        {socio.telefono}
                       </div>
                                          {' '}
                     </td>
