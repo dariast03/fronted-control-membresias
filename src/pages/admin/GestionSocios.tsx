@@ -3,88 +3,43 @@
 
 import { useState } from 'react';
 import { Eye, Pencil, Trash2, Grid, List } from 'lucide-react';
+import { useSocios } from '../../hooks/useSocios';
 
 // URL de la API (como referencia, no se usa en este ejemplo de frontend)
 const API_URL = 'https://localhost:7249/api/Docente';
 
 // --- Main App Component (GestionSocios) ---
 export default function GestionSocios() {
-  const initialSocios = [
-    {
-      id: 1,
-      CI: '1234567',
-      Nombre: 'Juan',
-      Apellido: 'Pérez García',
-      Correo: 'juan.perez@email.com',
-      Telefono: '612345678',
-      Profesion: 'Ingeniero Civil',
-      Fecha_registro: '15/01/2023',
-      Fecha_vencimiento: '15/01/2026',
-      Estado: 'Activo',
-      avatar: 'JP',
-    },
-    {
-      id: 2,
-      CI: '7654321',
-      Nombre: 'María',
-      Apellido: 'González López',
-      Correo: 'maria.gonzalez@email.com',
-      Telefono: '623456789',
-      Profesion: 'Arquitecta',
-      Fecha_registro: '20/02/2023',
-      Fecha_vencimiento: '20/02/2026',
-      Estado: 'Activo',
-      avatar: 'MG',
-    },
-    {
-      id: 3,
-      CI: '9876543',
-      Nombre: 'Carlos',
-      Apellido: 'Rodríguez Martín',
-      Correo: 'carlos.rodriguez@email.com',
-      Telefono: '634567890',
-      Profesion: 'Ing. Industrial',
-      Fecha_registro: '10/03/2022',
-      Fecha_vencimiento: '10/03/2025',
-      Estado: 'Expirado',
-      avatar: 'CR',
-    },
-    {
-      id: 4,
-      CI: '6543219',
-      Nombre: 'Ana',
-      Apellido: 'Martínez Silva',
-      Correo: 'ana.martinez@email.com',
-      Telefono: '645678901',
-      Profesion: 'Arquitecta',
-      Fecha_registro: '05/04/2023',
-      Fecha_vencimiento: '05/04/2026',
-      Estado: 'Activo',
-      avatar: 'AM',
-    },
-    {
-      id: 5,
-      CI: '3456789',
-      Nombre: 'Luis',
-      Apellido: 'Fernández Ruiz',
-      Correo: 'luis.fernandez@email.com',
-      Telefono: '656789012',
-      Profesion: 'Ing. Químico',
-      Fecha_registro: '12/05/2023',
-      Fecha_vencimiento: '12/05/2026',
-      Estado: 'Activo',
-      avatar: 'LF',
-    },
-  ]; // --- State for Data and Modals ---
-
-  const [sociosList, setSociosList] = useState(initialSocios);
+  const {
+    socios,
+    loading,
+    error,
+    actualizarSocio,
+    actualizarEstadoSocio,
+    eliminarSocio,
+  } = useSocios();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState('todos');
   const [viewMode, setViewMode] = useState('grid'); // Estados del Modal
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSocio, setSelectedSocio] = useState(null);
-  const [modalType, setModalType] = useState<string | null>(null); // 'view', 'edit', 'confirm_delete' // --- Utility Functions ---
+  const [modalType, setModalType] = useState<string | null>(null); // 'view', 'edit', 'confirm_delete'
+
+  // Función para mapear socio de API al formato del componente
+  const mapSocioToDisplay = (socio) => ({
+    ...socio,
+    CI: socio.cedulaIdentidad,
+    Nombre: socio.nombres || 'Sin nombre',
+    Apellido: socio.apellidos || 'Sin apellido',
+    Correo: socio.email || 'Sin email',
+    Estado: socio.estadoSocio,
+    Fecha_registro: new Date(socio.fechaRegistro).toLocaleDateString('es-ES'),
+    avatar:
+      `${socio.nombres?.charAt(0) || ''}${
+        socio.apellidos?.charAt(0) || ''
+      }`.toUpperCase() || 'SN',
+  });
 
   const getEstadoBadge = (estado) => {
     const styles = {
@@ -96,7 +51,7 @@ export default function GestionSocios() {
     return styles[estado] || '';
   };
 
-  const filteredSocios = sociosList.filter((socio) => {
+  const filteredSocios = socios.map(mapSocioToDisplay).filter((socio) => {
     const term = searchTerm.toLowerCase(); // Buscamos por CI, Nombre, Apellido y Profesion
     const matchesSearch =
       socio.CI.toLowerCase().includes(term) ||
@@ -155,16 +110,30 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
     setIsModalOpen(true);
   };
 
-  const confirmDelete = (id) => {
-    setSociosList((prev) => prev.filter((socio) => socio.id !== id));
-    handleCloseModal();
+  const confirmDelete = async (id) => {
+    try {
+      await eliminarSocio(id);
+      handleCloseModal();
+      alert('Socio eliminado exitosamente');
+    } catch (err) {
+      alert('Error al eliminar socio');
+    }
   };
 
-  const handleSaveEdit = (updatedSocio) => {
-    setSociosList((prev) =>
-      prev.map((s) => (s.id === updatedSocio.id ? updatedSocio : s))
-    );
-    handleCloseModal();
+  const handleSaveEdit = async (updatedSocio) => {
+    try {
+      // Solo actualizar campos permitidos según la API
+      await actualizarSocio({
+        id: updatedSocio.id,
+        cedulaIdentidad: updatedSocio.CI,
+        profesion: updatedSocio.Profesion,
+        estadoSocio: updatedSocio.Estado,
+      });
+      handleCloseModal();
+      alert('Socio actualizado exitosamente');
+    } catch (err) {
+      alert('Error al actualizar socio');
+    }
   }; // --- Nested Modal Components --- // 💡 Mantener el modal con fondo blanco (bg-white) y fondo oscuro para el overlay (bg-gray-900 bg-opacity-75)
 
   const Modal = ({ children }) => {
@@ -565,110 +534,127 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
              {' '}
       </div>
            {' '}
-      <div className='bg-white p-6 rounded-xl border border-gray-200 shadow-sm'>
-               {' '}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                   {' '}
-          <div className='md:col-span-2'>
-                       {' '}
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Buscar Socio
-            </label>
-                       {' '}
-            <input
-              type='text'
-              placeholder='Buscar por CI, nombre o profesión...'
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} // Buscador blanco
-              className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition duration-150 bg-white text-black'
-            />
-                     {' '}
-          </div>
-                   {' '}
-          <div>
-                       {' '}
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Filtrar por Estado
-            </label>
-                       {' '}
-            <select
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value)} // Select blanco
-              className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white appearance-none transition duration-150 text-black'
-            >
-                           {' '}
-              <option value='todos' className='text-black'>
-                                Todos los estados              {' '}
-              </option>
-                           {' '}
-              <option value='Activo' className='text-black'>
-                                Activo              {' '}
-              </option>
-                           {' '}
-              <option value='Expirado' className='text-black'>
-                                Expirado              {' '}
-              </option>
-                           {' '}
-              <option value='Pendiente' className='text-black'>
-                                Pendiente              {' '}
-              </option>
-                         {' '}
-            </select>
-                     {' '}
-          </div>
+      {loading ? (
+        <div className='bg-white rounded-xl border border-gray-200 text-center py-20 mt-6'>
+                    <div className='text-gray-400 text-5xl mb-3'>⏳</div>       
+            <p className='text-gray-500 text-lg'>Cargando socios...</p>       {' '}
+        </div>
+      ) : error ? (
+        <div className='bg-white rounded-xl border border-red-200 text-center py-20 mt-6'>
+                    <div className='text-red-400 text-5xl mb-3'>❌</div>       
+           {' '}
+          <p className='text-red-600 text-lg'>
+            Error al cargar socios: {error}
+          </p>
                  {' '}
         </div>
-               {' '}
-        <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100'>
-                   {' '}
-          <div className='text-center p-2'>
-                       {' '}
-            <div className='text-2xl font-extrabold text-black'>
-              {sociosList.length}
+      ) : (
+        <div className='bg-white p-6 rounded-xl border border-gray-200 shadow-sm'>
+                 {' '}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                     {' '}
+            <div className='md:col-span-2'>
+                         {' '}
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Buscar Socio
+              </label>
+                         {' '}
+              <input
+                type='text'
+                placeholder='Buscar por CI, nombre o profesión...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)} // Buscador blanco
+                className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition duration-150 bg-white text-black'
+              />
+                       {' '}
             </div>
-                       {' '}
-            <div className='text-xs text-gray-500 mt-1'>Total de Socios</div>   
-                 {' '}
+                     {' '}
+            <div>
+                         {' '}
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Filtrar por Estado
+              </label>
+                         {' '}
+              <select
+                value={filterEstado}
+                onChange={(e) => setFilterEstado(e.target.value)} // Select blanco
+                className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white appearance-none transition duration-150 text-black'
+              >
+                             {' '}
+                <option value='todos' className='text-black'>
+                                  Todos los estados              {' '}
+                </option>
+                             {' '}
+                <option value='Activo' className='text-black'>
+                                  Activo              {' '}
+                </option>
+                             {' '}
+                <option value='Expirado' className='text-black'>
+                                  Expirado              {' '}
+                </option>
+                             {' '}
+                <option value='Pendiente' className='text-black'>
+                                  Pendiente              {' '}
+                </option>
+                           {' '}
+              </select>
+                       {' '}
+            </div>
+                   {' '}
           </div>
-                   {' '}
-          <div className='text-center p-2'>
-                       {' '}
-            <div className='text-2xl font-extrabold text-black'>
-                           {' '}
-              {sociosList.filter((s) => s.Estado === 'Activo').length}         
+                 {' '}
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100'>
+                     {' '}
+            <div className='text-center p-2'>
+                         {' '}
+              <div className='text-2xl font-extrabold text-black'>
+                {socios.length}
+              </div>
+                         {' '}
+              <div className='text-xs text-gray-500 mt-1'>Total de Socios</div> 
+                     {' '}
+            </div>
+                     {' '}
+            <div className='text-center p-2'>
+                         {' '}
+              <div className='text-2xl font-extrabold text-black'>
+                             {' '}
+                {socios.filter((s) => s.estadoSocio === 'Activo').length}       
+                   {' '}
+              </div>
+                         {' '}
+              <div className='text-xs text-gray-500 mt-1'>Activos</div>         
                {' '}
             </div>
-                       {' '}
-            <div className='text-xs text-gray-500 mt-1'>Activos</div>           {' '}
-          </div>
-                   {' '}
-          <div className='text-center p-2'>
-                       {' '}
-            <div className='text-2xl font-extrabold text-black'>
-                           {' '}
-              {sociosList.filter((s) => s.Estado === 'Expirado').length}       
+                     {' '}
+            <div className='text-center p-2'>
+                         {' '}
+              <div className='text-2xl font-extrabold text-black'>
+                             {' '}
+                {socios.filter((s) => s.estadoSocio === 'Expirado').length}     
+                     {' '}
+              </div>
+                         {' '}
+              <div className='text-xs text-gray-500 mt-1'>Expirados</div>       
+               {' '}
+            </div>
+                     {' '}
+            <div className='text-center p-2'>
+                         {' '}
+              <div className='text-2xl font-extrabold text-black'>
+                             {' '}
+                {socios.filter((s) => s.estadoSocio === 'Pendiente').length}   
+                       {' '}
+              </div>
+                         {' '}
+              <div className='text-xs text-gray-500 mt-1'>Pendientes</div>     
                  {' '}
             </div>
-                       {' '}
-            <div className='text-xs text-gray-500 mt-1'>Expirados</div>         {' '}
+                   {' '}
           </div>
-                   {' '}
-          <div className='text-center p-2'>
-                       {' '}
-            <div className='text-2xl font-extrabold text-black'>
-                           {' '}
-              {sociosList.filter((s) => s.Estado === 'Pendiente').length}       
-                 {' '}
-            </div>
-                       {' '}
-            <div className='text-xs text-gray-500 mt-1'>Pendientes</div>       
-             {' '}
-          </div>
-                 {' '}
+               {' '}
         </div>
-             {' '}
-      </div>
-           {' '}
+      )}
       {filteredSocios.length === 0 ? (
         <div className='bg-white rounded-xl border border-gray-200 text-center py-20 mt-6'>
                     <div className='text-gray-400 text-5xl mb-3'>🔍</div>       
@@ -965,7 +951,7 @@ Fecha de Vencimiento: ${socio.Fecha_vencimiento}
                  {' '}
         </div>
       )}
-            {/* Conditional Modal Render */}     {' '}
+                  {/* Conditional Modal Render */}     {' '}
       <Modal>
                 {/* 1. Ver Detalles */}       {' '}
         {modalType === 'view' && selectedSocio && (
