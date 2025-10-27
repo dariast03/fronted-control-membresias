@@ -12,8 +12,6 @@ import {
   UserCheck,
   Clock,
   Euro,
-  AlertTriangle,
-  TrendingUp,
   LogOut,
 } from 'lucide-react';
 
@@ -26,48 +24,15 @@ import GestionSocios from './GestionSocios';
 import RegistrarSocio from './RegistrarSocio';
 import Renovaciones from './Renovaciones';
 import ControlPagos from './ControlPagos';
+import { useDashboard } from '../../hooks/useDashboard';
+import { useSocios } from '../../hooks/useSocios';
 
 export default function AdminDashboard() {
   const username = 'Admin';
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState('dashboard');
-
-  const stats = {
-    totalSocios: 156,
-    sociosActivos: 142,
-    sociosInactivos: 0,
-    renovacionesPendientes: 8,
-    ingresosMensuales: 22500,
-    registrosRecientes: 12,
-    vencenEsteMes: 5,
-  };
-
-  const sociosRecientes = [
-    {
-      id: 1,
-      nombre: 'Juan Pérez García',
-      profesion: 'Ingeniero Civil',
-      codigo: 'COL-2023-001',
-      estado: 'Activo',
-      avatar: 'JP',
-    },
-    {
-      id: 2,
-      nombre: 'María González López',
-      profesion: 'Arquitecta',
-      codigo: 'COL-2023-002',
-      estado: 'Pendiente',
-      avatar: 'MG',
-    },
-    {
-      id: 3,
-      nombre: 'Carlos Rodríguez Martín',
-      profesion: 'Ingeniero Industrial',
-      codigo: 'COL-2023-003',
-      estado: 'Expirado',
-      avatar: 'CR',
-    },
-  ];
+  const { stats, loading, error } = useDashboard();
+  const { socios } = useSocios();
 
   const handleLogout = () => {
     window.location.href = '/login';
@@ -103,110 +68,99 @@ export default function AdminDashboard() {
               </p>
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6'>
-              {/* Tarjeta 1: Total Socios */}
-              <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
-                      Total Socios
-                    </p>
-                    <h2 className='text-4xl font-bold text-black'>
-                      {stats.totalSocios}
-                    </h2>
+            {loading && <p>Cargando estadísticas...</p>}
+            {error && <p className='text-red-500'>{error}</p>}
+
+            {stats && (
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6'>
+                {/* Tarjeta 1: Total Socios */}
+                <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
+                  <div className='flex items-start justify-between'>
+                    <div>
+                      <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
+                        Total Socios
+                      </p>
+                      <h2 className='text-4xl font-bold text-black'>
+                        {stats.totalSocios}
+                      </h2>
+                    </div>
+                    <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
+                      <Users className='w-5 h-5 text-gray-700' />
+                    </div>
                   </div>
-                  <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
-                    <Users className='w-5 h-5 text-gray-700' />
+                </div>
+
+                {/* Tarjeta 2: Socios Activos */}
+                <div className='bg-white text-black p-6 rounded-lg border border-gray-200 hover:shadow-xl transition-all duration-300'>
+                  <div className='flex items-start justify-between'>
+                    <div>
+                      <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
+                        Socios Activos
+                      </p>
+                      <h2 className='text-4xl font-bold text-black'>
+                        {stats.sociosActivos}
+                      </h2>
+                    </div>
+                    <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
+                      <UserCheck className='w-5 h-5 text-gray-700' />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarjeta 3: Renovaciones Pendientes */}
+                <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
+                  <div className='flex items-start justify-between'>
+                    <div>
+                      <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
+                        Renovaciones
+                      </p>
+                      <h2 className='text-4xl font-bold text-black'>
+                        {stats.renovacionesPendientes}
+                      </h2>
+                    </div>
+                    <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
+                      <Clock className='w-5 h-5 text-gray-700' />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarjeta 4: Ingresos Totales */}
+                <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
+                  <div className='flex items-start justify-between'>
+                    <div>
+                      <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
+                        Ingresos Totales
+                      </p>
+                      <h2 className='text-3xl font-bold text-black'>
+                        Bs{stats.ingresosTotales.toLocaleString()}
+                      </h2>
+                    </div>
+                    <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
+                      <Euro className='w-5 h-5 text-gray-700' />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tarjeta 5: Pagos Totales */}
+                <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
+                  <div className='flex items-start justify-between'>
+                    <div>
+                      <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
+                        Pagos Totales
+                      </p>
+                      <h2 className='text-4xl font-bold text-black'>
+                        {stats.pagosTotales}
+                      </h2>
+                    </div>
+                    <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
+                      <CreditCard className='w-5 h-5 text-gray-700' />
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Tarjeta 2: Socios Activos */}
-              <div className='bg-white text-black p-6 rounded-lg border border-gray-200 hover:shadow-xl transition-all duration-300'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
-                      Socios Activos
-                    </p>
-                    <h2 className='text-4xl font-bold text-black'>
-                      {stats.sociosActivos}
-                    </h2>
-                  </div>
-                  <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
-                    <UserCheck className='w-5 h-5 text-gray-700' />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tarjeta 3: Renovaciones Pendientes */}
-              <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
-                      Renovaciones
-                    </p>
-                    <h2 className='text-4xl font-bold text-black'>
-                      {stats.renovacionesPendientes}
-                    </h2>
-                  </div>
-                  <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
-                    <Clock className='w-5 h-5 text-gray-700' />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tarjeta 4: Ingresos Mensuales - CAMBIO A BOLIVIANOS (Bs) */}
-              <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
-                      Ingresos (Bs)
-                    </p>
-                    <h2 className='text-3xl font-bold text-black'>
-                      Bs{stats.ingresosMensuales.toLocaleString()}
-                    </h2>
-                  </div>
-                  <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
-                    <Euro className='w-5 h-5 text-gray-700' />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tarjeta 5: Vencen Este Mes */}
-              <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
-                      Vencen
-                    </p>
-                    <h2 className='text-4xl font-bold text-black'>
-                      {stats.vencenEsteMes}
-                    </h2>
-                  </div>
-                  <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
-                    <AlertTriangle className='w-5 h-5 text-gray-700' />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tarjeta 6: Registros Recientes */}
-              <div className='bg-white p-6 rounded-lg border border-gray-200 hover:border-black transition-all duration-300'>
-                <div className='flex items-start justify-between'>
-                  <div>
-                    <p className='text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide'>
-                      Registros
-                    </p>
-                    <h2 className='text-4xl font-bold text-black'>
-                      {stats.registrosRecientes}
-                    </h2>
-                  </div>
-                  <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
-                    <TrendingUp className='w-5 h-5 text-gray-700' />
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            {/* Socios Recientes */}
             <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
               <div className='px-6 py-4 border-b border-gray-100'>
                 <h3 className='font-bold text-lg text-black'>
@@ -215,43 +169,58 @@ export default function AdminDashboard() {
               </div>
 
               <div className='divide-y divide-gray-100'>
-                {sociosRecientes.map((socio) => (
-                  <div
-                    key={socio.id}
-                    className='flex items-center justify-between p-5 hover:bg-gray-50 transition duration-200'
-                  >
-                    <div className='flex items-center'>
-                      <div className='w-12 h-12 bg-amber-100 text-amber-900 rounded-full flex items-center justify-center mr-4 font-bold text-sm border border-amber-200'>
-                        {socio.avatar}
+                {socios.slice(0, 10).map((socio) => {
+                  // Crear iniciales para el avatar
+                  const iniciales =
+                    `${socio.nombres?.charAt(0) || ''}${
+                      socio.apellidos?.charAt(0) || ''
+                    }`.toUpperCase() || 'SN';
+
+                  return (
+                    <div
+                      key={socio.id}
+                      className='flex items-center justify-between p-5 hover:bg-gray-50 transition duration-200'
+                    >
+                      <div className='flex items-center'>
+                        <div className='w-12 h-12 bg-amber-100 text-amber-900 rounded-full flex items-center justify-center mr-4 font-bold text-sm border border-amber-200'>
+                          {iniciales}
+                        </div>
+
+                        <div>
+                          <h4 className='text-base font-semibold text-black'>
+                            {socio.nombres || 'Sin nombre'}{' '}
+                            {socio.apellidos || 'Sin apellido'}
+                          </h4>
+                          <p className='text-sm text-gray-500'>
+                            {socio.profesion || 'Sin profesión'} •{' '}
+                            {socio.cedulaIdentidad || 'Sin CI'}
+                          </p>
+                        </div>
                       </div>
 
                       <div>
-                        <h4 className='text-base font-semibold text-black'>
-                          {socio.nombre}
-                        </h4>
-                        <p className='text-sm text-gray-500'>
-                          {socio.profesion} • {socio.codigo}
-                        </p>
+                        {socio.estadoSocio === 'Activo' ? (
+                          <span className='px-4 py-1.5 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-200'>
+                            Activo
+                          </span>
+                        ) : socio.estadoSocio === 'Inactivo' ? (
+                          <span className='px-4 py-1.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200'>
+                            Inactivo
+                          </span>
+                        ) : (
+                          <span className='px-4 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200'>
+                            {socio.estadoSocio || 'Desconocido'}
+                          </span>
+                        )}
                       </div>
                     </div>
-
-                    <div>
-                      {socio.estado === 'Activo' ? (
-                        <span className='px-4 py-1.5 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-200'>
-                          Activo
-                        </span>
-                      ) : socio.estado === 'Pendiente' ? (
-                        <span className='px-4 py-1.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200'>
-                          Pendiente
-                        </span>
-                      ) : (
-                        <span className='px-4 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200'>
-                          Expirado
-                        </span>
-                      )}
-                    </div>
+                  );
+                })}
+                {socios.length === 0 && !loading && (
+                  <div className='p-5 text-center text-gray-500'>
+                    No hay socios registrados
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </>

@@ -6,4 +6,9 @@ export const socioService = {
     const response = await backendApi.post('/Socio/registrar', data);
     return response.data;
   },
+
+  listar: async (): Promise<Socio[]> => {
+    const response = await backendApi.get('/Socio/listar');
+    return response.data;
+  },
 };
