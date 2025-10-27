@@ -26,6 +26,8 @@ import Renovaciones from './Renovaciones';
 import ControlPagos from './ControlPagos';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useSocios } from '../../hooks/useSocios';
+import NotificacionesDropdown from '../../components/NotificacionesDropdown';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function AdminDashboard() {
   const username = 'Admin';
@@ -33,6 +35,7 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const { stats, loading, error } = useDashboard();
   const { socios } = useSocios();
+  const { user } = useAuth();
 
   const handleLogout = () => {
     window.location.href = '/login';
@@ -297,6 +300,7 @@ export default function AdminDashboard() {
             </button>
 
             <div className='flex items-center space-x-4'>
+              <NotificacionesDropdown usuarioId={user?.id || ''} />
               <div className='text-right'>
                 <div className='font-semibold text-sm text-black'>
                   Administrador

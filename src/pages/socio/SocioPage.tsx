@@ -7,6 +7,7 @@ import { useMembresias } from '../../hooks/useMembresias';
 import { useAuth } from '../../hooks/useAuth';
 import { usePagos } from '../../hooks/usePagos';
 import { usePlanes } from '../../hooks/usePlanes';
+import NotificacionesDropdown from '../../components/NotificacionesDropdown';
 
 export default function SocioPage() {
   const navigate = useNavigate();
@@ -98,6 +99,7 @@ export default function SocioPage() {
               </a>
             </div>
             <div className='flex items-center gap-4'>
+              <NotificacionesDropdown usuarioId={user?.id || ''} />
               <div className='text-right'>
                 <p className='text-sm font-semibold'>Bienvenido</p>
                 <p className='text-sm text-muted-foreground'>
