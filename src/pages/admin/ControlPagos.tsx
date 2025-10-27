@@ -1,155 +1,56 @@
 /* eslint-disable no-irregular-whitespace */
-import React, { useState, useEffect } from 'react';
-
-// Se usa la URL que proporcionaste como ejemplo para simular la conexión.
-const API_BASE_URL = 'https://localhost:7249/api/Docente/pagos';
-
-// Datos de MOCK ajustados: todos los pagos están en estado 'pagado'.
-const MOCK_PAGOS_DATA = [
-  {
-    id: 1,
-    socio: 'Juan Pérez García',
-    codigo: 'COL-2023-001',
-    referencia: 'PAG-2025-001',
-    monto: 500.0,
-    fecha: '15/01/2025',
-    concepto: 'Cuota Anual 2025',
-    metodoPago: 'Transferencia',
-    estado: 'pagado',
-    avatar: 'JP',
-  },
-  {
-    id: 2,
-    socio: 'María González López',
-    codigo: 'COL-2023-002',
-    referencia: 'PAG-2025-002',
-    monto: 500.0,
-    fecha: '20/02/2025',
-    concepto: 'Cuota Anual 2025',
-    metodoPago: 'Domiciliación',
-    estado: 'pagado',
-    avatar: 'MG',
-  },
-  {
-    id: 3,
-    socio: 'Carlos Rodríguez Martín',
-    codigo: 'COL-2023-003',
-    referencia: 'PAG-2025-003',
-    monto: 500.0,
-    fecha: '10/03/2025',
-    vencimiento: '10/03/2025',
-    concepto: 'Cuota Anual 2025',
-    metodoPago: 'Transferencia',
-    estado: 'pagado',
-    avatar: 'CR',
-  },
-  {
-    id: 4,
-    socio: 'Ana Martínez Silva',
-    codigo: 'COL-2023-004',
-    referencia: 'PAG-2025-004',
-    monto: 140.5,
-    fecha: '05/04/2025',
-    concepto: 'Cuota Trimestral Q2',
-    metodoPago: 'Tarjeta',
-    estado: 'pagado',
-    avatar: 'AM',
-  },
-  {
-    id: 5,
-    socio: 'Luis Fernández Ruiz',
-    codigo: 'COL-2023-005',
-    referencia: 'PAG-2025-005',
-    monto: 50.0,
-    fecha: '12/05/2025',
-    concepto: 'Cuota Mensual Mayo',
-    metodoPago: 'Efectivo',
-    estado: 'pagado',
-    avatar: 'LF',
-  },
-  {
-    id: 6,
-    socio: 'Elena Sánchez Torres',
-    codigo: 'COL-2023-006',
-    referencia: 'PAG-2025-006',
-    monto: 270.0,
-    fecha: '18/06/2025',
-    vencimiento: '01/11/2025',
-    concepto: 'Cuota Semestral S2',
-    metodoPago: 'Transferencia',
-    estado: 'pagado',
-    avatar: 'ES',
-  },
-  {
-    id: 7,
-    socio: 'Pedro Martínez Ruiz',
-    codigo: 'COL-2023-007',
-    referencia: 'PAG-2025-007',
-    monto: 500.0,
-    fecha: '05/07/2025',
-    vencimiento: '05/10/2025',
-    concepto: 'Cuota Anual 2025',
-    metodoPago: 'Domiciliación',
-    estado: 'pagado',
-    avatar: 'PM',
-  },
-];
+import { useState, useEffect } from 'react';
+import { usePagos } from '../../hooks/usePagos';
 
 export default function ControlPagos() {
-  const [pagos, setPagos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filterEstado, setFilterEstado] = useState('todos');
+  const { pagos: apiPagos, loading, error, fetchPagos } = usePagos();
   const [searchTerm, setSearchTerm] = useState('');
-
-  const fetchPagos = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Simular latencia de red
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setPagos(MOCK_PAGOS_DATA);
-    } catch (err) {
-      setError(
-        'No se pudo conectar al servidor de pagos. Usando datos de ejemplo.'
-      );
-      setPagos(MOCK_PAGOS_DATA);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchPagos();
-  }, []);
+  }, [fetchPagos]);
+
+  // Función para mapear pago de API al formato del componente
+  const mapPagoToDisplay = (pago) => ({
+    ...pago,
+    socio: pago.usuarioNombre || 'Usuario desconocido',
+    codigo: `PAGO-${pago.id.slice(-6)}`,
+    referencia: `REF-${pago.id.slice(-8)}`,
+    fecha: new Date(pago.fechaPago).toLocaleDateString('es-ES'),
+    concepto: 'Pago de Membresía',
+    metodoPago: 'Transferencia', // Valor por defecto ya que la API no lo proporciona
+    estado: pago.estado.toLowerCase(),
+    avatar: (pago.usuarioNombre?.charAt(0) || 'U').toUpperCase(),
+  });
+
+  const pagos = apiPagos.map(mapPagoToDisplay);
 
   const filteredPagos = pagos.filter((pago) => {
     const matchesSearch =
       pago.socio.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pago.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pago.referencia.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      filterEstado === 'todos' || pago.estado === filterEstado;
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
   const getEstadoBadge = (estado) => {
     const styles = {
-      pagado: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+      confirmado: 'bg-green-100 text-green-800 border border-green-200',
       pendiente: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-      vencido: 'bg-red-50 text-red-700 border border-red-200',
+      cancelado: 'bg-red-50 text-red-700 border border-red-200',
     };
-    return styles[estado] || '';
+    return styles[estado] || 'bg-gray-100 text-gray-800 border border-gray-200';
   };
 
   const getEstadoLabel = (estado) => {
     const labels = {
-      pagado: 'Pagado',
+      confirmado: 'Confirmado',
       pendiente: 'Pendiente',
-      vencido: 'Vencido',
+      cancelado: 'Cancelado',
     };
-    return labels[estado] || '';
+    return labels[estado] || estado;
   };
+
   const formatBolivianos = (amount) => {
     return amount
       .toLocaleString('es-BO', {
@@ -160,8 +61,9 @@ export default function ControlPagos() {
       })
       .replace('BOB', 'Bs')
       .trim();
-  }; // Función para manejar la descarga del recibo
+  };
 
+  // Función para manejar la descarga del recibo
   const handleDownloadReceipt = (pago) => {
     // 1. Formatear el contenido del recibo (como texto plano con formato)
     // Se utilizan saltos de línea y espacios para simular un documento.
@@ -170,7 +72,7 @@ export default function ControlPagos() {
     RECIBO DE PAGO - COLEGIO DE INGENIEROS
 ==============================================
     Documento generado automáticamente
-    
+   
 Referencia de Pago: ${pago.referencia}
 Código de Socio: ${pago.codigo}
 
@@ -182,7 +84,6 @@ Fecha de Pago: ${pago.fecha}
 Monto Pagado: ${formatBolivianos(pago.monto)}
 Método de Pago: ${pago.metodoPago}
 Estado: ${getEstadoLabel(pago.estado)}
-${pago.vencimiento ? 'Fecha de Vencimiento: ' + pago.vencimiento : ''}
 ----------------------------------------------
 
 Este documento sirve como prueba de pago.
@@ -203,9 +104,7 @@ Este documento sirve como prueba de pago.
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-  const totalPagado = pagos
-    .filter((p) => p.estado === 'pagado')
-    .reduce((acc, p) => acc + p.monto, 0);
+
   const totalGeneral = pagos.reduce((acc, p) => acc + p.monto, 0);
 
   if (loading) {
@@ -240,7 +139,7 @@ Este documento sirve como prueba de pago.
                  {' '}
       {error && (
         <div className='p-4 text-sm text-red-600 border border-red-200 bg-red-50 rounded-lg'>
-                    ⚠️ Advertencia de Conexión: {error}       {' '}
+                    ⚠️ Error: {error}       {' '}
         </div>
       )}
             {/* Panel Superior: Solo se muestra el Total */}     {' '}
@@ -329,9 +228,9 @@ Este documento sirve como prueba de pago.
                 <th className='px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider'>
                   Acciones
                 </th>
-                             {' '}
+                               {' '}
               </tr>
-                         {' '}
+                           {' '}
             </thead>
                        {' '}
             <tbody className='divide-y divide-gray-100'>
@@ -356,7 +255,7 @@ Este documento sirve como prueba de pago.
                                            {' '}
                       {/* AVATAR CON FONDO BEIGE Y TEXTO MARRÓN OSCURO */}     
                                      {' '}
-                      <div className='w-10 h-10 bg-yellow-100 text-yellow-900 rounded-full flex items-center justify-center mr-3 font-bold text-xs flex-shrink-0'>
+                      <div className='w-10 h-10 bg-yellow-100 text-yellow-900 rounded-full flex items-center justify-center mr-3 font-bold text-xs shrink-0'>
                                                 {pago.avatar}                   
                          {' '}
                       </div>
@@ -387,12 +286,6 @@ Este documento sirve como prueba de pago.
                                        {' '}
                     <div className='text-sm text-gray-900'>{pago.fecha}</div>   
                                    {' '}
-                    {pago.vencimiento && (
-                      <div className='text-xs text-gray-500'>
-                        Vence: {pago.vencimiento}
-                      </div>
-                    )}
-                                     {' '}
                   </td>
                                    {' '}
                   <td className='px-6 py-4 whitespace-nowrap'>
@@ -458,7 +351,7 @@ Este documento sirve como prueba de pago.
                     </div>
                                      {' '}
                   </td>
-                                 {' '}
+                                   {' '}
                 </tr>
               ))}
                          {' '}

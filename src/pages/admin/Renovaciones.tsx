@@ -1,70 +1,8 @@
 /* eslint-disable no-irregular-whitespace */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useMembresiasList } from '../../hooks/useMembresiasList';
 
 // --- CONSTANTES Y HELPERS ---
-
-// URL de la API simulada
-const API_BASE_URL = 'https://localhost:7249/api/Docente/renovaciones';
-const generateRandomId = () => Math.floor(Math.random() * 1000000) + 1000;
-
-// Datos de MOCK
-const MOCK_RENOVACIONES_DATA = [
-  {
-    id: 1,
-    nombre: 'Elena Sánchez Torres',
-    codigo: 'COL-2023-006',
-    profesion: 'Ingeniera Civil',
-    fechaVencimiento: '18/12/2025',
-    diasRestantes: 54,
-    cuotaAnual: 500.0,
-    estado: 'proximo',
-    avatar: 'ES',
-  },
-  {
-    id: 2,
-    nombre: 'Pedro Martínez Ruiz',
-    codigo: 'COL-2023-007',
-    profesion: 'Arquitecto',
-    fechaVencimiento: '05/11/2025',
-    diasRestantes: 11,
-    cuotaAnual: 500.0,
-    estado: 'urgente',
-    avatar: 'PM',
-  },
-  {
-    id: 3,
-    nombre: 'Laura Gómez Díaz',
-    codigo: 'COL-2023-008',
-    profesion: 'Ingeniera Industrial',
-    fechaVencimiento: '22/11/2025',
-    diasRestantes: 28,
-    cuotaAnual: 500.0,
-    estado: 'proximo',
-    avatar: 'LG',
-  },
-  {
-    id: 4,
-    nombre: 'Carlos Rodríguez Martín',
-    codigo: 'COL-2023-003',
-    profesion: 'Ingeniero Industrial',
-    fechaVencimiento: '10/03/2025',
-    diasRestantes: -229,
-    cuotaAnual: 500.0,
-    estado: 'vencido',
-    avatar: 'CR',
-  },
-  {
-    id: 5,
-    nombre: 'Ana López Fernández',
-    codigo: 'COL-2023-009',
-    profesion: 'Arquitecta',
-    fechaVencimiento: '15/12/2025',
-    diasRestantes: 51,
-    cuotaAnual: 500.0,
-    estado: 'proximo',
-    avatar: 'AL',
-  },
-];
 
 // Función para formatear a Bolivianos (Bs)
 const formatBolivianos = (amount) => {
@@ -118,18 +56,11 @@ const RenovacionModal = ({
     try {
       // SIMULACIÓN DE LLAMADA AL BACKEND (.NET) para registrar la transacción
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      const transaccionData = {
-        socioId: renovacion.id,
-        monto: montoPagar,
-        plan: planCuota,
-        metodo: metodoPago,
-        referencia: `TRANS-${generateRandomId()}`,
-      };
 
       setSuccess(true);
 
       setTimeout(() => {
-        onRenovacionExitosa(renovacion.id, transaccionData);
+        onRenovacionExitosa();
       }, 1000);
     } catch (err) {
       setError('Error al procesar la renovación. Intente de nuevo.');
@@ -303,35 +234,55 @@ const RenovacionModal = ({
 // --- COMPONENTE PRINCIPAL ---
 
 export default function Renovaciones() {
-  const [renovaciones, setRenovaciones] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    membresias: apiMembresias,
+    loading,
+    error,
+    fetchMembresias,
+  } = useMembresiasList();
   const [filterType, setFilterType] = useState('proximos'); // Estados para el Modal de Renovación
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRenovacion, setSelectedRenovacion] = useState(null); // Estados para el Recordatorio
 
-  const [sendingReminderId, setSendingReminderId] = useState<number | null>(
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(
     null
   );
   const [reminderSuccessMessage, setReminderSuccessMessage] = useState<
     string | null
-  >(null); // Función para simular la conexión al backend
+  >(null);
 
-  const fetchRenovaciones = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setRenovaciones(MOCK_RENOVACIONES_DATA);
-    } catch (err) {
-      setError(
-        'No se pudo conectar al servidor de renovaciones. Usando datos de ejemplo.'
-      );
-      setRenovaciones(MOCK_RENOVACIONES_DATA);
-    } finally {
-      setLoading(false);
+  // Función para mapear membresía de API al formato del componente
+  const mapMembresiaToRenovacion = (membresia) => {
+    const fechaFin = new Date(membresia.fechaFin);
+    const hoy = new Date();
+    const diasRestantes = Math.ceil(
+      (fechaFin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    let estado;
+    if (membresia.estado === 'PendienteRenovacion') {
+      estado = diasRestantes <= 15 ? 'urgente' : 'proximo';
+    } else if (membresia.estado === 'Activa') {
+      estado = diasRestantes <= 15 ? 'urgente' : 'proximo';
+    } else {
+      estado = 'vencido';
     }
-  }; // Función para simular el envío de recordatorio
+
+    return {
+      id: membresia.id,
+      nombre: membresia.usuarioNombre || 'Usuario desconocido',
+      codigo: `MEM-${membresia.id.slice(-6)}`,
+      profesion: membresia.planNombre, // Usamos planNombre como profesión por simplicidad
+      fechaVencimiento: fechaFin.toLocaleDateString('es-ES'),
+      diasRestantes: diasRestantes,
+      cuotaAnual: membresia.monto || 500, // Valor por defecto si no hay monto
+      estado: estado,
+      avatar: (membresia.usuarioNombre?.charAt(0) || 'U').toUpperCase(),
+      usuarioId: membresia.usuarioId,
+    };
+  };
+
+  const renovaciones = apiMembresias.map(mapMembresiaToRenovacion);
 
   const handleSendReminder = async (renovacion) => {
     setSendingReminderId(renovacion.id);
@@ -354,8 +305,8 @@ export default function Renovaciones() {
   };
 
   useEffect(() => {
-    fetchRenovaciones();
-  }, []); // Manejadores del Modal
+    fetchMembresias();
+  }, [fetchMembresias]); // Manejadores del Modal
   const openRenovacionModal = (renovacion) => {
     setSelectedRenovacion(renovacion);
     setIsModalOpen(true);
@@ -364,14 +315,13 @@ export default function Renovaciones() {
   const closeRenovacionModal = () => {
     setIsModalOpen(false);
     setSelectedRenovacion(null);
-  }; // Lógica después de una renovación exitosa
+  };
 
-  const handleRenovacionExitosa = (id, transaccionData) => {
-    setRenovaciones(
-      (
-        prev // Filtramos la renovación exitosa de la lista de pendientes
-      ) => prev.filter((r) => r.id !== id)
-    ); // Cerramos el modal
+  // Lógica después de una renovación exitosa
+  const handleRenovacionExitosa = async () => {
+    // Recargar los datos para reflejar cambios
+    await fetchMembresias();
+    // Cerramos el modal
     setTimeout(() => {
       closeRenovacionModal();
     }, 500);
@@ -650,7 +600,7 @@ export default function Renovaciones() {
                     <div className='flex items-center'>
                                             {/* Iniciales de color Beige */}   
                                        {' '}
-                      <div className='w-10 h-10 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-full flex items-center justify-center mr-3 font-bold text-xs flex-shrink-0'>
+                      <div className='w-10 h-10 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-full flex items-center justify-center mr-3 font-bold text-xs shrink-0'>
                                                 {renovacion.avatar}             
                                {' '}
                       </div>

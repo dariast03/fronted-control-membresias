@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Usuario, UpdateUsuarioRequest } from '../types/Usuario';
+import type {
+  Usuario,
+  UpdateUsuarioRequest,
+  RegisterRequest,
+} from '../types/Usuario';
 import { usuarioService } from '../services/usuarioService';
 import { useAuth } from './useAuth';
 
@@ -21,6 +25,21 @@ export const useUsuarios = () => {
       setLoading(false);
     }
   }, []);
+
+  const registrarUsuario = async (data: RegisterRequest) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const newUser = await usuarioService.registrar(data);
+      setUsuarios((prev) => [...prev, newUser]);
+      return newUser;
+    } catch (err) {
+      setError('Error al registrar usuario');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const actualizarUsuario = async (id: string, data: UpdateUsuarioRequest) => {
     setLoading(true);
@@ -60,6 +79,7 @@ export const useUsuarios = () => {
     loading,
     error,
     fetchUsuarios,
+    registrarUsuario,
     actualizarUsuario,
     obtenerUsuario,
   };
