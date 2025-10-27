@@ -1,8 +1,14 @@
 /* eslint-disable no-irregular-whitespace */
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMembresiasList } from '../../hooks/useMembresiasList';
+import { usePagos } from '../../hooks/usePagos';
+import { usePlanes } from '../../hooks/usePlanes';
+import { membresiaService } from '../../services/membresiaService';
 
 // --- CONSTANTES Y HELPERS ---
+
+// Días antes del vencimiento para habilitar el botón de renovación
+const DIAS_ANTES_VENCIMIENTO = 32;
 
 // Función para formatear a Bolivianos (Bs)
 const formatBolivianos = (amount) => {
@@ -19,219 +25,7 @@ const formatBolivianos = (amount) => {
 
 // --- SUB-COMPONENTE MODAL (Integrado) ---
 
-const RenovacionModal = ({
-  isOpen,
-  onClose,
-  renovacion,
-  onRenovacionExitosa,
-}) => {
-  const [metodoPago, setMetodoPago] = useState('Transferencia');
-  const [planCuota, setPlanCuota] = useState('Anual');
-  const [montoPagar, setMontoPagar] = useState(renovacion?.cuotaAnual || 0);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (renovacion) {
-      const baseCuota = renovacion.cuotaAnual;
-      if (planCuota === 'Anual') {
-        setMontoPagar(baseCuota);
-      } else if (planCuota === 'Semestral') {
-        setMontoPagar(baseCuota / 2 + 50);
-      } else {
-        setMontoPagar(baseCuota);
-      }
-    }
-  }, [renovacion, planCuota]);
-
-  if (!isOpen || !renovacion) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      // SIMULACIÓN DE LLAMADA AL BACKEND (.NET) para registrar la transacción
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      setSuccess(true);
-
-      setTimeout(() => {
-        onRenovacionExitosa();
-      }, 1000);
-    } catch (err) {
-      setError('Error al procesar la renovación. Intente de nuevo.');
-      setLoading(false);
-    }
-  };
-
-  const currentAction =
-    renovacion.estado === 'vencido' ? 'Reactivación' : 'Renovación';
-
-  return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-                 {' '}
-      <div className='bg-white rounded-xl shadow-2xl w-full max-w-lg'>
-                       {' '}
-        <div className='p-6 border-b border-gray-100 flex justify-between items-center'>
-                             {' '}
-          <h3 className='text-xl font-bold text-black'>
-            {currentAction} de Membresía
-          </h3>
-                             {' '}
-          <button
-            onClick={onClose}
-            className='text-gray-400 hover:text-gray-600'
-          >
-                                   {' '}
-            <svg
-              className='w-6 h-6'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M6 18L18 6M6 6l12 12'
-              />
-            </svg>
-                               {' '}
-          </button>
-                         {' '}
-        </div>
-                       {' '}
-        <form onSubmit={handleSubmit} className='p-6 space-y-5'>
-                              {/* Información del Socio */}                   {' '}
-          <div className='p-3 bg-gray-50 rounded-lg'>
-                                   {' '}
-            <p className='text-sm font-semibold text-gray-700'>
-              Socio:{' '}
-              <span className='font-bold text-black'>{renovacion.nombre}</span>
-            </p>
-                                   {' '}
-            <p className='text-xs text-gray-500'>
-              Vencimiento Anterior: {renovacion.fechaVencimiento}
-            </p>
-                               {' '}
-          </div>
-                              {/* Opciones de Plan */}                   {' '}
-          <div>
-                                   {' '}
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Plan de Cuota
-            </label>
-                                   {' '}
-            <select
-              value={planCuota}
-              onChange={(e) => setPlanCuota(e.target.value)}
-              className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-black focus:border-black'
-              disabled={loading}
-            >
-                                         {' '}
-              <option value='Anual'>
-                Anual ({formatBolivianos(renovacion.cuotaAnual)})
-              </option>
-                                         {' '}
-              <option value='Semestral'>
-                Semestral ({formatBolivianos(renovacion.cuotaAnual / 2 + 50)})
-              </option>
-                                     {' '}
-            </select>
-                                   {' '}
-            <p className='text-xs text-gray-500 mt-1'>
-              Seleccionar el plan define el monto a pagar.
-            </p>
-                               {' '}
-          </div>
-                                                 {' '}
-          {/* Opciones de Método de Pago */}                   {' '}
-          <div>
-                                   {' '}
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Método de Pago
-            </label>
-                                   {' '}
-            <select
-              value={metodoPago}
-              onChange={(e) => setMetodoPago(e.target.value)}
-              className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-black focus:border-black'
-              disabled={loading}
-            >
-                                         {' '}
-              <option value='Transferencia'>Transferencia Bancaria</option>     
-                                   {' '}
-              <option value='Tarjeta'>Tarjeta de Crédito/Débito</option>       
-                                 {' '}
-              <option value='Efectivo'>Efectivo (en oficina)</option>           
-                         {' '}
-            </select>
-                               {' '}
-          </div>
-                              {/* Monto Final */}                   {' '}
-          <div className='text-center p-4 bg-gray-100 rounded-lg'>
-                                   {' '}
-            <p className='text-sm text-gray-700'>Monto Final a Pagar:</p>       
-                           {' '}
-            <p className='text-3xl font-bold text-black'>
-              {formatBolivianos(montoPagar)}
-            </p>
-                               {' '}
-          </div>
-                              {/* Mensajes de Estado */}                   {' '}
-          {error && (
-            <div className='p-3 text-sm text-red-600 border border-red-200 bg-red-50 rounded-lg'>
-                                          {error}                       {' '}
-            </div>
-          )}
-                             {' '}
-          {success && (
-            <div className='p-3 text-sm text-green-600 border border-green-200 bg-green-50 rounded-lg'>
-                                          ✅ ¡{currentAction} exitosa!
-              Registrando en el historial.                        {' '}
-            </div>
-          )}
-                              {/* Botones de Acción */}                   {' '}
-          <div className='flex justify-end space-x-3 pt-2'>
-                                   {' '}
-            <button
-              type='button'
-              onClick={onClose}
-              className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition'
-              disabled={loading}
-            >
-                                          Cancelar                        {' '}
-            </button>
-                                   {' '}
-            <button
-              type='submit'
-              className={`px-6 py-2 text-sm font-medium rounded-lg text-white transition ${
-                loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-black hover:bg-gray-800'
-              }`}
-              disabled={loading || success}
-            >
-                                         {' '}
-              {loading ? 'Procesando...' : `${currentAction} y Pagar`}         
-                           {' '}
-            </button>
-                               {' '}
-          </div>
-                         {' '}
-        </form>
-                   {' '}
-      </div>
-             {' '}
-    </div>
-  );
-};
-
-// --- COMPONENTE PRINCIPAL ---
+// Modal de renovación eliminado - ahora usamos modales separados para confirmación y pago// --- COMPONENTE PRINCIPAL ---
 
 export default function Renovaciones() {
   const {
@@ -240,9 +34,10 @@ export default function Renovaciones() {
     error,
     fetchMembresias,
   } = useMembresiasList();
-  const [filterType, setFilterType] = useState('proximos'); // Estados para el Modal de Renovación
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRenovacion, setSelectedRenovacion] = useState(null); // Estados para el Recordatorio
+  const { registrarPago } = usePagos();
+  const { planes } = usePlanes();
+
+  const [filterType, setFilterType] = useState('proximos'); // Estados para el Recordatorio
 
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(
     null
@@ -250,6 +45,23 @@ export default function Renovaciones() {
   const [reminderSuccessMessage, setReminderSuccessMessage] = useState<
     string | null
   >(null);
+
+  // Estados para renovación y pago
+  const [showRenewModal, setShowRenewModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedMembresia, setSelectedMembresia] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState({
+    monto: 0,
+    descripcion: '',
+    membresiaId: '',
+    planId: '',
+  });
+  const [cardData, setCardData] = useState({
+    numero: '',
+    fechaExpiracion: '',
+    cvv: '',
+    nombreTitular: '',
+  });
 
   // Función para mapear membresía de API al formato del componente
   const mapMembresiaToRenovacion = (membresia) => {
@@ -304,28 +116,68 @@ export default function Renovaciones() {
     }
   };
 
+  // Función para iniciar el proceso de renovación
+  const handleRenew = (membresiaData) => {
+    setSelectedMembresia(membresiaData);
+    setPaymentData({
+      monto: membresiaData.cuotaAnual,
+      descripcion: `Renovación de membresía - ${membresiaData.nombre}`,
+      membresiaId: membresiaData.id,
+      planId: '', // Se determinará basado en el plan actual
+    });
+    setShowRenewModal(true);
+  };
+
+  // Función para confirmar la renovación y proceder al pago
+  const handleConfirmRenewal = () => {
+    setShowRenewModal(false);
+    setShowPaymentModal(true);
+  };
+
+  // Función para procesar el pago y renovar la membresía
+  const handlePayment = async () => {
+    if (!selectedMembresia) return;
+
+    try {
+      // Primero registrar el pago
+      const pagoRequest = {
+        usuarioId: selectedMembresia.usuarioId,
+        membresiaId: selectedMembresia.id,
+        monto: paymentData.monto,
+        metodoPago: 'Tarjeta',
+      };
+
+      await registrarPago(pagoRequest);
+
+      // Luego renovar la membresía
+      await membresiaService.renovar(selectedMembresia.id);
+
+      // Recargar datos y cerrar modales
+      await fetchMembresias();
+      setShowPaymentModal(false);
+      setSelectedMembresia(null);
+      setCardData({
+        numero: '',
+        fechaExpiracion: '',
+        cvv: '',
+        nombreTitular: '',
+      });
+
+      // Mostrar mensaje de éxito
+      setReminderSuccessMessage('✅ Renovación completada exitosamente');
+      setTimeout(() => setReminderSuccessMessage(null), 4000);
+    } catch (error) {
+      console.error('Error en el proceso de renovación:', error);
+      setReminderSuccessMessage(
+        '❌ Error al procesar la renovación. Intente nuevamente.'
+      );
+      setTimeout(() => setReminderSuccessMessage(null), 4000);
+    }
+  };
+
   useEffect(() => {
     fetchMembresias();
-  }, [fetchMembresias]); // Manejadores del Modal
-  const openRenovacionModal = (renovacion) => {
-    setSelectedRenovacion(renovacion);
-    setIsModalOpen(true);
-  };
-
-  const closeRenovacionModal = () => {
-    setIsModalOpen(false);
-    setSelectedRenovacion(null);
-  };
-
-  // Lógica después de una renovación exitosa
-  const handleRenovacionExitosa = async () => {
-    // Recargar los datos para reflejar cambios
-    await fetchMembresias();
-    // Cerramos el modal
-    setTimeout(() => {
-      closeRenovacionModal();
-    }, 500);
-  };
+  }, [fetchMembresias]);
 
   const filteredRenovaciones = renovaciones.filter((r) => {
     if (filterType === 'todos') return r.estado !== 'pagado';
@@ -684,18 +536,18 @@ export default function Renovaciones() {
                                        {' '}
                     <div className='flex items-center space-x-2'>
                                            {' '}
-                      {/* Botón Renovar/Reactivar: FONDO GRIS CLARO, Texto Negro, SIN BORDE */}
-                                           {' '}
-                      <button
-                        onClick={() => openRenovacionModal(renovacion)} // Clases modificadas: bg-gray-200, text-black, eliminada la clase 'border'
-                        className='px-4 py-1.5 text-xs font-medium bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition duration-200'
-                      >
-                                               {' '}
-                        {renovacion.estado === 'vencido'
-                          ? 'Reactivar'
-                          : 'Renovar'}
-                                             {' '}
-                      </button>
+                      {/* Botón Renovar/Reactivar: Solo mostrar si está vencido o dentro del período definido */}
+                      {(renovacion.diasRestantes < 0 ||
+                        renovacion.diasRestantes <= DIAS_ANTES_VENCIMIENTO) && (
+                        <button
+                          onClick={() => handleRenew(renovacion)}
+                          className='px-4 py-1.5 text-xs font-medium bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition duration-200'
+                        >
+                          {renovacion.estado === 'vencido'
+                            ? 'Reactivar'
+                            : 'Renovar'}
+                        </button>
+                      )}
                                                                  {' '}
                       {/* Botón de Recordatorio (sin cambios) */}               
                            {' '}
@@ -780,14 +632,164 @@ export default function Renovaciones() {
         )}
              {' '}
       </div>
-                  {/* Integración del Modal */}     {' '}
-      <RenovacionModal
-        isOpen={isModalOpen}
-        onClose={closeRenovacionModal}
-        renovacion={selectedRenovacion}
-        onRenovacionExitosa={handleRenovacionExitosa}
-      />
-         {' '}
+      {/* Modal de Confirmación de Renovación */}
+      {showRenewModal && selectedMembresia && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-xl shadow-2xl w-full max-w-md'>
+            <div className='p-6 border-b border-gray-100'>
+              <h3 className='text-xl font-bold text-black'>
+                Confirmar Renovación
+              </h3>
+            </div>
+            <div className='p-6 space-y-4'>
+              <div className='p-4 bg-gray-50 rounded-lg'>
+                <p className='text-sm font-semibold text-gray-700'>
+                  Socio:{' '}
+                  <span className='font-bold text-black'>
+                    {selectedMembresia.nombre}
+                  </span>
+                </p>
+                <p className='text-sm text-gray-600'>
+                  Código: {selectedMembresia.codigo}
+                </p>
+                <p className='text-sm text-gray-600'>
+                  Vencimiento Actual: {selectedMembresia.fechaVencimiento}
+                </p>
+              </div>
+              <div className='text-center p-4 bg-blue-50 rounded-lg'>
+                <p className='text-sm text-gray-700'>Monto a Pagar:</p>
+                <p className='text-2xl font-bold text-black'>
+                  {formatBolivianos(paymentData.monto)}
+                </p>
+              </div>
+              <p className='text-sm text-gray-600 text-center'>
+                Al confirmar, procederá al pago con tarjeta de crédito/débito.
+              </p>
+            </div>
+            <div className='flex justify-end space-x-3 p-6 pt-0'>
+              <button
+                onClick={() => setShowRenewModal(false)}
+                className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50'
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmRenewal}
+                className='px-6 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800'
+              >
+                Proceder al Pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Pago con Tarjeta */}
+      {showPaymentModal && selectedMembresia && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+          <div className='bg-white rounded-xl shadow-2xl w-full max-w-md'>
+            <div className='p-6 border-b border-gray-100'>
+              <h3 className='text-xl font-bold text-black'>Pago con Tarjeta</h3>
+            </div>
+            <div className='p-6 space-y-4'>
+              <div className='p-3 bg-gray-50 rounded-lg'>
+                <p className='text-sm font-semibold text-gray-700'>
+                  Renovación para:{' '}
+                  <span className='font-bold text-black'>
+                    {selectedMembresia.nombre}
+                  </span>
+                </p>
+                <p className='text-sm text-gray-600'>
+                  Monto: {formatBolivianos(paymentData.monto)}
+                </p>
+              </div>
+
+              <div className='space-y-3'>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                    Número de Tarjeta
+                  </label>
+                  <input
+                    type='text'
+                    placeholder='1234 5678 9012 3456'
+                    value={cardData.numero}
+                    onChange={(e) =>
+                      setCardData({ ...cardData, numero: e.target.value })
+                    }
+                    className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-black focus:border-black'
+                    maxLength={19}
+                  />
+                </div>
+                <div className='grid grid-cols-2 gap-3'>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      Fecha Exp.
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='MM/YY'
+                      value={cardData.fechaExpiracion}
+                      onChange={(e) =>
+                        setCardData({
+                          ...cardData,
+                          fechaExpiracion: e.target.value,
+                        })
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-black focus:border-black'
+                      maxLength={5}
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-1'>
+                      CVV
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='123'
+                      value={cardData.cvv}
+                      onChange={(e) =>
+                        setCardData({ ...cardData, cvv: e.target.value })
+                      }
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-black focus:border-black'
+                      maxLength={4}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                    Nombre del Titular
+                  </label>
+                  <input
+                    type='text'
+                    placeholder='Como aparece en la tarjeta'
+                    value={cardData.nombreTitular}
+                    onChange={(e) =>
+                      setCardData({
+                        ...cardData,
+                        nombreTitular: e.target.value,
+                      })
+                    }
+                    className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-black focus:border-black'
+                  />
+                </div>
+              </div>
+            </div>
+            <div className='flex justify-end space-x-3 p-6 pt-0'>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50'
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePayment}
+                className='px-6 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800'
+              >
+                Procesar Pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
