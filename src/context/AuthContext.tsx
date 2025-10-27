@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<LoginResponse['user']>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,10 +18,14 @@ export { AuthContext };
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem('token')
-  );
+  const [user, setUser] = useState<Usuario | null>(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('token');
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -34,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(response.user);
     setToken(response.token);
     localStorage.setItem('token', response.token);
+    localStorage.setItem('user', JSON.stringify(response.user));
 
     return response.user;
   };
@@ -42,13 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   };
 
   const isAuthenticated = !!token;
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, isAuthenticated }}
+      value={{ user, token, login, logout, isAuthenticated, isLoading }}
     >
       {children}
     </AuthContext.Provider>

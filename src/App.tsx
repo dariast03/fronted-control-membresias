@@ -21,9 +21,27 @@ const ProtectedRoute = ({
   roleRequired: string;
   children: React.ReactNode;
 }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+
+  // Si no está autenticado, redirigir al login
+  if (!isAuthenticated) {
+    return <Navigate to='/login' />;
+  }
+
+  // Si está autenticado pero no tiene el rol correcto, redirigir según el rol actual
   const role = user?.rol || '';
-  return role === roleRequired ? <>{children}</> : <Navigate to='/login' />;
+  if (role !== roleRequired) {
+    // Si es admin intentando acceder a socio, o viceversa
+    if (role === 'Admin') {
+      return <Navigate to='/admin' />;
+    } else if (role === 'Socio') {
+      return <Navigate to='/socio' />;
+    } else {
+      return <Navigate to='/login' />;
+    }
+  }
+
+  return <>{children}</>;
 };
 
 export default function App() {
