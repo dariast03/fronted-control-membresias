@@ -24,7 +24,8 @@ export default function SocioPage() {
     expiry: '',
     cvv: '',
   });
-  const { membresia, loading, error, renovarMembresia } = useMembresias();
+  const { membresia, loading, error, renovarMembresia, fetchMembresia } =
+    useMembresias();
   const { user, logout } = useAuth();
   const { registrarPago } = usePagos();
   const { planes } = usePlanes();
@@ -67,6 +68,7 @@ export default function SocioPage() {
     }
     try {
       await registrarPago({ ...paymentData, metodoPago: metodo });
+      await fetchMembresia();
       setShowPaymentModal(false);
       alert('Pago registrado exitosamente. Membresía renovada.');
     } catch (err) {

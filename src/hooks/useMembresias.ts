@@ -28,8 +28,6 @@ export const useMembresias = () => {
     setError(null);
     try {
       const result = await membresiaService.renovar(id);
-      // Después de renovar, refetch
-      await fetchMembresia();
       return result;
     } catch (err) {
       setError('Error al renovar membresía');
