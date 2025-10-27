@@ -11,6 +11,7 @@ import SocioPage from './pages/socio/SocioPage';
 import LandingPage from './pages/LandingPage';
 import RegistroPage from './pages/registro/RegistroPage';
 import { useAuth } from './hooks/useAuth';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Componente para proteger las rutas basado en el rol del usuario
 const ProtectedRoute = ({
@@ -46,7 +47,7 @@ export default function App() {
           path='/admin'
           element={
             <ProtectedRoute roleRequired='Admin'>
-              CREAR COMPONEWNTE ADMIN DASHBOARD
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
