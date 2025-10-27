@@ -5,12 +5,29 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/img/logo.png';
 import { useMembresias } from '../../hooks/useMembresias';
 import { useAuth } from '../../hooks/useAuth';
+import { usePagos } from '../../hooks/usePagos';
+import { usePlanes } from '../../hooks/usePlanes';
 
 export default function SocioPage() {
   const navigate = useNavigate();
   const [showRenewModal, setShowRenewModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    usuarioId: '',
+    membresiaId: '',
+    monto: 0,
+    metodoPago: 'tarjeta',
+  });
+  const [cardData, setCardData] = useState({
+    number: '',
+    name: '',
+    expiry: '',
+    cvv: '',
+  });
   const { membresia, loading, error, renovarMembresia } = useMembresias();
   const { user, logout } = useAuth();
+  const { registrarPago } = usePagos();
+  const { planes } = usePlanes();
 
   const handleLogout = () => {
     logout();
@@ -18,13 +35,42 @@ export default function SocioPage() {
   };
 
   const handleRenew = async () => {
-    if (!membresia) return;
+    if (!membresia || !user) return;
+    const planActual = planes.find((p) => p.nombre === membresia.planNombre);
+    const precio = planActual?.precio || membresia.monto;
     try {
       await renovarMembresia(membresia.id);
+      setPaymentData({
+        usuarioId: user.id,
+        membresiaId: membresia.id,
+        monto: precio,
+        metodoPago: 'tarjeta',
+      });
       setShowRenewModal(false);
-      alert('Solicitud de renovación enviada exitosamente');
+      setShowPaymentModal(true);
     } catch (err) {
       alert('Error al renovar membresía');
+    }
+  };
+
+  const handlePayment = async (metodo: string) => {
+    if (metodo === 'tarjeta') {
+      if (
+        !cardData.number ||
+        !cardData.name ||
+        !cardData.expiry ||
+        !cardData.cvv
+      ) {
+        alert('Completa todos los datos de la tarjeta');
+        return;
+      }
+    }
+    try {
+      await registrarPago({ ...paymentData, metodoPago: metodo });
+      setShowPaymentModal(false);
+      alert('Pago registrado exitosamente. Membresía renovada.');
+    } catch (err) {
+      alert('Error en el pago');
     }
   };
 
@@ -182,7 +228,9 @@ export default function SocioPage() {
                 {membresia.planNombre}
               </p>
               <p className='text-muted-foreground text-sm'>
-                Monto: ${membresia.monto}
+                Monto: $
+                {planes.find((p) => p.nombre === membresia.planNombre)
+                  ?.precio || membresia.monto}
               </p>
             </div>
           </div>
@@ -229,7 +277,7 @@ export default function SocioPage() {
                 onClick={handleRenew}
                 className='flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700'
               >
-                Confirmar
+                Continuar al Pago
               </button>
               <button
                 onClick={() => setShowRenewModal(false)}
@@ -237,6 +285,126 @@ export default function SocioPage() {
               >
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Pago */}
+      {showPaymentModal && (
+        <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4'>
+          <div className='bg-card rounded-xl shadow-xl max-w-md w-full p-6'>
+            <h3 className='text-xl font-bold mb-4'>Procesar Pago</h3>
+            <p className='text-muted-foreground mb-6'>
+              Monto a pagar: ${paymentData.monto}
+            </p>
+            <div className='space-y-4'>
+              <div>
+                <label className='block text-sm font-medium mb-2'>
+                  Método de Pago
+                </label>
+                <select
+                  className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+                  onChange={(e) =>
+                    setPaymentData((prev) => ({
+                      ...prev,
+                      metodoPago: e.target.value,
+                    }))
+                  }
+                  value={paymentData.metodoPago}
+                >
+                  <option value='tarjeta'>Tarjeta</option>
+                  <option value='transferencia'>Transferencia</option>
+                </select>
+              </div>
+              {paymentData.metodoPago === 'tarjeta' && (
+                <div className='space-y-4'>
+                  <div>
+                    <label className='block text-sm font-medium mb-2'>
+                      Número de Tarjeta
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='1234 5678 9012 3456'
+                      value={cardData.number}
+                      onChange={(e) =>
+                        setCardData((prev) => ({
+                          ...prev,
+                          number: e.target.value,
+                        }))
+                      }
+                      className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium mb-2'>
+                      Nombre en la Tarjeta
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='Juan Pérez'
+                      value={cardData.name}
+                      onChange={(e) =>
+                        setCardData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+                    />
+                  </div>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <label className='block text-sm font-medium mb-2'>
+                        Fecha de Vencimiento
+                      </label>
+                      <input
+                        type='text'
+                        placeholder='MM/AA'
+                        value={cardData.expiry}
+                        onChange={(e) =>
+                          setCardData((prev) => ({
+                            ...prev,
+                            expiry: e.target.value,
+                          }))
+                        }
+                        className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+                      />
+                    </div>
+                    <div>
+                      <label className='block text-sm font-medium mb-2'>
+                        CVV
+                      </label>
+                      <input
+                        type='text'
+                        placeholder='123'
+                        value={cardData.cvv}
+                        onChange={(e) =>
+                          setCardData((prev) => ({
+                            ...prev,
+                            cvv: e.target.value,
+                          }))
+                        }
+                        className='w-full px-4 py-2 border border-gray-300 rounded-lg'
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className='flex gap-4'>
+                <button
+                  onClick={() => handlePayment(paymentData.metodoPago)}
+                  className='flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700'
+                >
+                  Pagar
+                </button>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className='flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400'
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
         </div>
